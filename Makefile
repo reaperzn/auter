@@ -33,7 +33,7 @@ endif
 deb: bugref ?= $(shell bash -c 'read -p "Enter Debian bug referenc number only: " REF; echo $${REF}')
 
 ignore_files_regexp := "^Makefile\|${pkg_name}..*.tar.gz\|${pkg_name}.spec.*$$\|.*.md\|buildguide.txt"
-files := $(shell ls | egrep -ve ${ignore_files_regexp})
+files := $(shell ls | egrep -ve "${ignore_files_regexp}")
 
 clean:
 	@rm -rf ${pkg_name}-*.tar.gz
