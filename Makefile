@@ -22,11 +22,16 @@ version_release := ${version}-${release}
 distribution := $(shell lsb_release -is)
 ifeq (${distribution}, Debian)
   distributionrelease := unstable
+  debhelperversion := 10
 else ifeq (${distribution}, Ubuntu)
   distributionrelease := $(shell lsb_release -cs)
+  debhelperversion := 9
 else
   distributionrelease := "FAILED... distribution=${distribution}"
 endif
+
+# Reference a bug for changelog
+deb: bugref ?= $(shell bash -c 'read -p "Enter Debian bug referenc number only: " REF; echo $${REF}')
 
 ignore_files_regexp := "^Makefile\|${pkg_name}..*.tar.gz\|${pkg_name}.spec.*$$\|.*.md\|buildguide.txt"
 files := $(shell ls | egrep -ve ${ignore_files_regexp})
@@ -37,6 +42,7 @@ clean:
 	@rm -rf ${pkg_name}_${version}*
 
 sources:
+	@echo "bugref variable = ${bugref}"
 	@mkdir -p ${pkg_name}-${version}
 	@cp -p ${files} ${pkg_name}-${version}
 	@tar -zcf ${pkg_name}-${version}.tar.gz ${pkg_name}-${version}
@@ -49,6 +55,8 @@ deb:
 	@mkdir -p ${pkg_name}-${version}
 	@cp -pr ${files} ${pkg_name}-${version}
 	@sed -i 's/^Standards-Version:.*$$/Standards-Version: ${lintian-standards-version}/g' ${pkg_name}-${version}/debian/control
+	@sed -i 's/^Build-Depends:.*$$/Build-Depends: debhelper (>= ${debhelperversion})/g' ${pkg_name}-${version}/debian/control
+	@echo ${debhelperversion} > ${pkg_name}-${version}/debian/compat
 	@mv ${pkg_name}-${version}/auter.cron ${pkg_name}-${version}/debian/auter.cron.d
 	@mv ${pkg_name}-${version}/auter.aptModule ${pkg_name}-${version}/auter.module
 	@find ${pkg_name}-${version}/ -type f | xargs sed -i 's|/usr/bin/auter|/usr/sbin/auter|g'
@@ -57,11 +65,12 @@ deb:
 	@mkdir ${pkg_name}-${version}/docs
 	@/usr/bin/help2man --include=auter.help2man -n auter --no-info ./auter -o ${pkg_name}-${version}/docs/auter.1
 	@echo "auter (${version}) ${distributionrelease}; urgency=medium" >${pkg_name}-${version}/debian/changelog
-	@echo "  * Release ${version}." >>${pkg_name}-${version}/debian/changelog
-	# DON'T FORGET TO CHANGE THIS VERSION AT NEXR RERLEASE
+	@echo "  * Release ${version}. (Closes: #${bugref})" >>${pkg_name}-${version}/debian/changelog
+	@echo "DON'T FORGET TO CHANGE THIS VERSION AT NEXR RERLEASE"
+	@cp -ar ${pkg_name}-${version} ${pkg_name}-${version}.orig
 	@/usr/bin/awk '/0.11/,/^$$/' NEWS | sed 's/*/ */g' | grep -v "^[0-9]" >>${pkg_name}-${version}/debian/changelog
 	@echo " -- Paolo Gigante <paolo.gigante.sa@gmail.com>  ${datelong}" >>${pkg_name}-${version}/debian/changelog
-	@cp -ar ${pkg_name}-${version} ${pkg_name}-${version}.orig
+	@gzip -9 -k ${pkg_name}-${version}/debian/changelog
 	@tar -czf ${pkg_name}_${version}.orig.tar.gz ${pkg_name}-${version}.orig
 
 showvariables:

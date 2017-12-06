@@ -1,13 +1,12 @@
 Source: auter
 Maintainer: Paolo Gigante <paolo.gigante.sa@gmail.com>
-Section: misc
+Section: admin
 Priority: optional
 Standards-Version: 3.9.7
 Build-Depends: debhelper (>= 9)
 
 Package: auter
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Automatic updates for Redhat and Debian based Linux servers
  Auter is an update tool that can manage scheduled automatic updates using cron.
  Auter has the ability to run pre/post script hooks, pre-download packages and
