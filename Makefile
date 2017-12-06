@@ -14,9 +14,8 @@ ifeq ($(strip ${git_tag}),)
   release := ${date}.git${git_commit}
   release_message := "This seems to be an untagged version - ${release}. If this is not for testing you should checkout a tagged version before running make"
 else
-  version := ${git_tag}
+  version := ${git_tag}-${release}
 endif
-version_release := ${version}-${release}
 
 # Build release for debian
 distribution := $(shell lsb_release -is)
@@ -38,8 +37,8 @@ files := $(shell ls | egrep -ve ${ignore_files_regexp})
 
 clean:
 	@rm -rf ${pkg_name}-*.tar.gz
-	@rm -rf ${pkg_name}-${version}*
-	@rm -rf ${pkg_name}_${version}*
+	@rm -rf ${pkg_name}-${git_tag}*
+	@rm -rf ${pkg_name}_${git_tag}*
 
 sources:
 	@echo "bugref variable = ${bugref}"
@@ -70,8 +69,7 @@ deb:
 	@cp -ar ${pkg_name}-${version} ${pkg_name}-${version}.orig
 	@/usr/bin/awk '/0.11/,/^$$/' NEWS | sed 's/*/ */g' | grep -v "^[0-9]" >>${pkg_name}-${version}/debian/changelog
 	@echo " -- Paolo Gigante <paolo.gigante.sa@gmail.com>  ${datelong}" >>${pkg_name}-${version}/debian/changelog
-	@gzip -9 -k ${pkg_name}-${version}/debian/changelog
-	@tar -czf ${pkg_name}_${version}.orig.tar.gz ${pkg_name}-${version}.orig
+	@tar -czf ${pkg_name}_${git_tag}.orig.tar.gz ${pkg_name}-${version}.orig
 
 showvariables:
 	@echo ${release_message}
