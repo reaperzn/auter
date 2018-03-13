@@ -7,6 +7,9 @@ EXITCODE=0
 AUTERDIR="$(cd "$(dirname "$0")" ; cd ../ ; pwd -P )"
 
 # Create a list of script files to be checked. These are files 
+echo "DEBUG: Current directory: $(pwd)"
+echo "DEBUG: TESTDIR: ${TESTDIR}"
+echo "DEBUG:  directory: $(pwd)"
 if [[ -f "${TESTDIR}"/CHANGEDFILES ]]; then
   ALLFILES=$(find "${AUTERDIR}" -type f -not -path '*/\.*' | egrep "$(cat CHANGEDFILES | xargs | tr ' ' '|')")
   
@@ -21,7 +24,8 @@ done
 echo "${SCRIPTSTOTEST}"
 
 # Add non-shebang scripts manually
-SCRIPTSTOTEST+="auter.aptModule auter.yumdnfModule"
+grep -q "auter.aptModule" "${TESTDIR}"/CHANGEDFILES && SCRIPTSTOTEST+=" auter.aptModule "
+grep -q "auter.yumdnfModule" "${TESTDIR}"/CHANGEDFILES && SCRIPTSTOTEST+=" auter.yumdnfModule "
 
 # Custom shellcheck exclusions
 SHELLCHECK_EXCLUSIONS=",SC2102,SC2124,SC2155,SC2148"
