@@ -6,7 +6,7 @@ before_install:
 script:
     - "git remote add upstream https://github.com/rackerlabs/auter.git"
     - "git pull --all"
-    - "git diff upstream/master --name-only"
+    - "git diff upstream/master --name-only >CHANGEDFILES"
     - "cat CHANGEDFILES"
     - "sudo docker run --rm=true --mount type=bind,source=$(pwd),destination=/auter --name auter-test -td centos:7"
     - "docker exec auter-test yum -y install epel-release &>/dev/null"
