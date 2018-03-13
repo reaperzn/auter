@@ -5,7 +5,7 @@ before_install:
     - docker pull centos
 script:
     - "git remote add upstream https://github.com/rackerlabs/auter.git"
-    - "git pull --all"
+    - "git pull --all &>dev/null"
     - "git diff upstream/master --name-only >CHANGEDFILES"
     - "cat CHANGEDFILES"
     - "sudo docker run --rm=true --mount type=bind,source=$(pwd),destination=/auter --name auter-test -td centos:7"
