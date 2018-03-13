@@ -3,7 +3,7 @@ r='\033[31m'
 w='\033[0m'
 g='\033[32m'
 
-[[ ! -f /usr/bin/aspell ]] && echo "apsell not installed. Aborting test" && exit 1
+[[ ! -f /usr/bin/aspell ]] && echo "aspell not installed. Aborting test" && exit 1
 
 EXITCODE=0
 AUTERDIR="$(cd "$(dirname "$0")" ; cd ../ ; pwd -P )"

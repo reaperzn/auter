@@ -1,4 +1,4 @@
-personal_ws-1.1 en 183 
+personal_ws-1.1 en 184 
 DOWNLOADLOGMSG
 sublicense
 Gigante
@@ -77,6 +77,7 @@ repo
 systemd
 debian
 lt
+FILELIST
 PREPOUTPUT
 ifeq
 cronjobs
@@ -84,7 +85,9 @@ downloadonly
 whoami
 ubuntu
 mv
+CHANGEDFILES
 filename
+AUTERDIR
 xargs
 rc
 chmod
@@ -92,8 +95,8 @@ Cornwell
 sbin
 stdout
 lsb
-sa
 rf
+sa
 lockfile
 TESTVAR
 EXITCODE
@@ -151,7 +154,6 @@ RPMs
 Rackspace
 eval
 MAXDELAY
-basefile
 AUTOREBOOT
 gpg
 useradd
@@ -179,6 +181,5 @@ POSTAPPLYSCRIPTDIR
 pre
 DEBs
 aspell
-chown
 AUTERVERSION
 TRANSACTIONID
