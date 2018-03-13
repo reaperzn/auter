@@ -4,8 +4,9 @@ services:
 before_install:
     - docker pull centos
 script:
-    - "git diff master"
-    - "git diff master | grep '+++' | awk -F/ '{print $NF}' >CHANGEDFILES"
+    - "git remote add upstream https://github.com/rackerlabs/auter.git"
+    - "git pull --all"
+    - "git diff upstream/master --name-only"
     - "cat CHANGEDFILES"
     - "sudo docker run --rm=true --mount type=bind,source=$(pwd),destination=/auter --name auter-test -td centos:7"
     - "docker exec auter-test yum -y install epel-release &>/dev/null"
