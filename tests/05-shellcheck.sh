@@ -5,11 +5,11 @@ g='\033[32m'
 
 EXITCODE=0
 AUTERDIR="$(cd "$(dirname "$0")" ; cd ../ ; pwd -P )"
-CHANGEDFILES="$(find / -name CHANGEDFILES)"
+CHANGEDFILES="$(find "${AUTERDIR}" -name CHANGEDFILES)"
 
 # Create a list of script files to be checked. These are files 
 if [[ -f "${CHANGEDFILES}" ]]; then
-  ALLFILES=$(find "${AUTERDIR}" -type f -not -path '*/\.*' | egrep "$(cat ${CHANGEDFILES} | xargs | tr ' ' '|')")
+  ALLFILES=$(find "${AUTERDIR}" -type f -not -path '*/\.*' | egrep "$(xargs <"${CHANGEDFILES}" | tr ' ' '|')")
   
 else
   ALLFILES=$(find "${AUTERDIR}" -type f -not -path '*/\.*')
