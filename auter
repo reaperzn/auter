@@ -42,6 +42,9 @@ declare -x PREAPPLYSCRIPTDIR="${SCRIPTDIR}/pre-apply.d"
 declare -x POSTAPPLYSCRIPTDIR="${SCRIPTDIR}/post-apply.d"
 declare -x PREREBOOTSCRIPTDIR="${SCRIPTDIR}/pre-reboot.d"
 declare -x POSTREBOOTSCRIPTDIR="${SCRIPTDIR}/post-reboot.d"
+declare -x -i SKIPALLSCRIPTS=1
+declare -x -a SKIPPHASESCRIPTS
+declare -x -a SKIPSCRIPTNAMES
 
 function default_signal_handling() {
   trap 'rm -f "${PIDFILE}"' SIGINT SIGTERM
@@ -51,7 +54,7 @@ function default_signal_handling() {
 #   help2man --include=auter.help2man --no-info ./auter > auter.man
 function print_help() {
   echo "
-Usage: auter [--enable|--disable|--status] [--prep] [--apply] [--reboot] [--postreboot] [--config=<configfile>] [OPTION]
+Usage: auter [--enable|--disable|--status] [--prep] [--apply] [--reboot] [--postreboot] [--config=<configfile>] [OPTIONS]
 
 Automatic Update Transaction Execution by Rackspace. A wrapper around cron and yum/dnf/apt to manage system updates with the ability to configure automatic reboots and custom scripts.
 
@@ -67,6 +70,21 @@ Actions:
 Options:
   --config=FILE Specify the full path to an auter config file. Defaults to /etc/auter/auter.conf
   --stdout      Always log to STDOUT, regardless of not having a tty
+  --skip-all-scripts
+                Skip the executions of all custom scripts (Default in /etc/auter/*.d/)
+
+  --skip-phase-scripts=PHASE
+                Skip the execution of the custom scripts for the specified phase. You can specify myltiple phases.
+
+                Valid Phases: pre-prep, post-prep, pre-apply, post-apply, pre-reboot, post-reboot. 
+
+                Example: --skip-phase-scripts=\"pre-prep,post-apply,pre-reboot\"
+
+  --skip-scripts-by-name=SCRIPTNAME
+                Skip specific scripts by name. You can specify myltiple phases. 
+
+                Example: --skip-scripts-by-name=\"10-configsnap-pre, 20-startApp.sh\"
+
   --no-wall	If possible, suppress shutdown wall messages in the reboot phase
   -h, --help    Show this help text
   -v, --version Show the version
@@ -114,16 +132,39 @@ function rotate_file {
 function run_script {
   SCRIPT=$1
   PHASE=$2
-  if [[ -x "${SCRIPT}" ]] && [[ -f "${SCRIPT}" ]]; then
-    logit "INFO: Running ${PHASE} script ${SCRIPT}"
-    ${SCRIPT}
-    local RC=$?
-    if [[ "${RC}" -ne 0 ]]; then
-      logit "ERROR: ${PHASE} script ${SCRIPT} exited with non-zero exit code ${RC}. Aborting auter run."
-      quit 8
+  if [[ "${SKIPALLSCRIPTS}" -eq 0 ]]; then
+    SKIP=0
+    # Check if the phase scripts have been skipped with --skip-phase-scripts
+    if [[ -n "${SKIPPHASESCRIPTS[*]}" ]]; then
+      shopt -s nocasematch
+      for SKIPPHASESCRIPT in "${SKIPPHASESCRIPTS[@]}"; do
+        [[ ${SKIPPHASESCRIPT} == *"${PHASE}"* ]] && SKIP=1
+      done
+      shopt -u nocasematch
     fi
-  elif [[ -f "${SCRIPT}" ]]; then
-    logit "ERROR: ${PHASE} script ${SCRIPT} exists but the execute bit is not set. Skipping."
+
+    # Check if the script has been excluded with --skip-scripts-by-name
+    if [[ -n "${SKIPSCRIPTNAMES[*]}" ]]; then
+      shopt -s nocasematch
+      for SKIPSCRIPTNAME in "${SKIPSCRIPTNAMES[@]}"; do
+        [[ ${SKIPSCRIPTNAME} == *"${SCRIPT}"* ]] && SKIP=1
+      done
+      shopt -u nocasematch
+    fi
+
+    if [[ -x "${SCRIPT}" ]] && [[ -f "${SCRIPT}" ]] && [[ "${SKIP}" -eq 0 ]]; then
+      logit "INFO: Running ${PHASE} script ${SCRIPT}"
+      ${SCRIPT}
+      local RC=$?
+      if [[ "${RC}" -ne 0 ]]; then
+        logit "ERROR: ${PHASE} script ${SCRIPT} exited with non-zero exit code ${RC}. Aborting auter run."
+        quit 8
+      fi
+    elif [[ -f "${SCRIPT}" ]]; then
+      logit "ERROR: ${PHASE} script ${SCRIPT} exists but the execute bit is not set. Skipping."
+    fi
+  else
+    logit "INFO: The --skip-all-scripts flag was used. NOT executing ${SCRIPT} as part of the ${PHASE} phase"
   fi
 }
 
@@ -208,7 +249,7 @@ default_signal_handling
 
 
 ARGS=$@
-OPTS=$(getopt -n "$0" -o h,v --long prep,apply,enable,disable,reboot,postreboot,version,help,stdout,no-wall,status,config: -- "$@")
+OPTS=$(getopt -n "$0" -o h,v --long prep,apply,enable,disable,reboot,postreboot,version,help,stdout,no-wall,status,config:,skip-all-scripts,skip-phase-scripts:,skip-scripts-by-name: -- "$@")
 if [[ $? -ne 0 ]]; then
   echo "Try '$0 --help' for more information."
   exit
@@ -229,6 +270,9 @@ while true ; do
     --postreboot) POSTREBOOT=1 ; shift;;
     --enable) ENABLE=1 ; shift;;
     --disable) DISABLE=1 ; shift;;
+    --skip-all-scripts) SKIPALLSCRIPTS=1 ; shift;;
+    --skip-phase-scripts) IFS=',' read -a SKIPPHASESCRIPTS <<< "$2" ; shift 2;;
+    --skip-scripts-by-name) IFS=',' read -a SKIPSCRIPTNAMES <<< "$2" ; shift 2;;
     --status) print_status ; exit 0;;
     --) shift ; break;;
   esac
@@ -301,6 +345,18 @@ if [[ "${ONLYINSTALLFROMPREP}" == "yes" ]]; then
     logit "ERROR: ${DOWNLOADDIR}/${CONFIGSET} does not have the correct permissions."
     quit 3
   fi
+fi
+
+# Validate the SKIPPHASESCRIPTS values
+if [[ -n "${SKIPPHASESCRIPTS[*]}" ]]; then
+  for SKIPPHASESCRIPT in "${SKIPPHASESCRIPTS[@]}"; do
+    if [[ ${SKIPPHASESCRIPT} =~ [pre,post]-[prep,apply,reboot] ]]; then
+       logit "INFO: The --skip-phase-scripts argument was used. Skipping ${SKIPPHASESCRIPT} scripts"
+    else
+       logit "ERROR: The --skip-phase-scripts argument was used with an invalid option: '${SKIPPHASESCRIPT}'. Exiting"
+       quit 1
+    fi
+  done
 fi
 
 logit "INFO: Running with: $0 ${ARGS}"
