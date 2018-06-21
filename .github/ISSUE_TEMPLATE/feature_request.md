@@ -1,4 +1,3 @@
-
 ---
 name: Feature Request
 about: Suggest a new and useful feature for auter
